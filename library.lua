@@ -7288,7 +7288,7 @@ local Library do
                 Instances:Create("UICorner", {
                     Parent = Items["Pages"].Instance,
                     Name = "\0",
-                    CornerRadius = UDimNew(0, 8)
+                    CornerRadius = UDimNew(0, 6)
                 })
 
                 Items["Holder"] = Instances:Create("Frame", {
@@ -7904,7 +7904,7 @@ local Library do
                 Instances:Create("UICorner", {
                     Parent = Items["Inactive"].Instance,
                     Name = "\0",
-                    CornerRadius = UDimNew(1, 0)
+                    CornerRadius = UDimNew(0, 6)
                 })
 
                 Items["Icon"] = Instances:Create("ImageLabel", {
