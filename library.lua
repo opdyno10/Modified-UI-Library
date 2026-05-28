@@ -265,7 +265,7 @@ local Options, MiscOptions do
 
         local FontNames = {
             ["ProggyClean"] = "ProggyClean.ttf",
-            ["Tahoma"] = "fs-tahoma-8px.ttf",
+            ["Tahoma"] = "Tahoma-Modern.ttf",
             ["Verdana"] = "Verdana-Font.ttf",
             ["SmallestPixel"] = "smallest_pixel-7.ttf",
             ["ProggyTiny"] = "ProggyTiny.ttf",
