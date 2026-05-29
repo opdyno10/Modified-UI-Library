@@ -1972,9 +1972,12 @@ local Library do
 
             local InputChanged
 
+            local TargetPosition
+            local DragRender
+
             local Set = function(Input)
                 local DragDelta = Input.Position - DragStart
-                self:Tween(TweenInfo.new(0.16, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Position = UDim2New(StartPosition.X.Scale, StartPosition.X.Offset + DragDelta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + DragDelta.Y)})
+                TargetPosition = UDim2New(StartPosition.X.Scale, StartPosition.X.Offset + DragDelta.X, StartPosition.Y.Scale, StartPosition.Y.Offset + DragDelta.Y)
             end
 
             self:Connect("InputBegan", function(Input)
@@ -1983,6 +1986,27 @@ local Library do
 
                     DragStart = Input.Position
                     StartPosition = Gui.Position
+                    TargetPosition = Gui.Position
+
+                    -- Smoothly lerp the window toward the drag target every
+                    -- frame. Cheaper and smoother than a tween per event.
+                    if not DragRender then
+                        DragRender = RunService.RenderStepped:Connect(function(DeltaTime)
+                            if not TargetPosition then
+                                return
+                            end
+
+                            local Alpha = MathClamp(DeltaTime * 18, 0, 1)
+                            local Current = Gui.Position
+
+                            Gui.Position = UDim2New(
+                                TargetPosition.X.Scale,
+                                Current.X.Offset + (TargetPosition.X.Offset - Current.X.Offset) * Alpha,
+                                TargetPosition.Y.Scale,
+                                Current.Y.Offset + (TargetPosition.Y.Offset - Current.Y.Offset) * Alpha
+                            )
+                        end)
+                    end
 
                     if InputChanged then
                         return
@@ -1991,6 +2015,17 @@ local Library do
                     InputChanged = Input.Changed:Connect(function()
                         if Input.UserInputState == Enum.UserInputState.End then
                             Dragging = false
+
+                            -- Settle exactly where the cursor left it, then
+                            -- stop the render loop to avoid idle per-frame work.
+                            if TargetPosition then
+                                Gui.Position = TargetPosition
+                            end
+
+                            if DragRender then
+                                DragRender:Disconnect()
+                                DragRender = nil
+                            end
 
                             InputChanged:Disconnect()
                             InputChanged = nil
@@ -7803,7 +7838,39 @@ local Library do
             local IsMinimized = false
             local OldSize = Items["MainFrame"].Instance.AbsoluteSize
 
+            function Window:Minimize()
+                if IsMinimized then return end
+                IsMinimized = true
+                OldSize = Items["MainFrame"].Instance.AbsoluteSize
+                Items["MainFrame"]:Tween(nil, {Size = UDim2New(0, Items["MainFrame"].Instance.Size.X.Offset, 0, 35)})
+                Items["MinimizeButton"]:Tween(nil, {ImageTransparency = 1})
+                Items["UnMinimizeButton"]:Tween(nil, {ImageTransparency = 0})
+            end
+
+            function Window:UnMinimize()
+                if not IsMinimized then return end
+                IsMinimized = false
+                Items["MainFrame"]:Tween(nil, {Size = UDim2New(0, Items["MainFrame"].Instance.Size.X.Offset, 0, OldSize.Y)})
+                Items["MinimizeButton"]:Tween(nil, {ImageTransparency = 0})
+                Items["UnMinimizeButton"]:Tween(nil, {ImageTransparency = 1})
+            end
+
+            function Window:GetMinimized()
+                return IsMinimized
+            end
+
+            -- External hook fired when the minimize button is pressed
+            -- (used to also send a Right Ctrl key press).
+            Window.OnMinimize = nil
+
+            Items["UnMinimizeButton"]:Connect("MouseButton1Down", function()
+                Window:UnMinimize()
+            end)
+
             Items["MinimizeButton"]:Connect("MouseButton1Down", function()
+                if Window.OnMinimize then
+                    Library:SafeCall(Window.OnMinimize)
+                end
                 IsMinimized = not IsMinimized
 
                 if IsMinimized then
